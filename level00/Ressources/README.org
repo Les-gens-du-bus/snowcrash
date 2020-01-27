@@ -1,0 +1,119 @@
+# -*- shell-file-name: "/bin/dash"; -*-
+#+TITLE: Flag00
+#+PROPERTY: header-args:shell+ :dir /ssh:level00@192.168.122.15#4242:
+
+On commence par chercher tous les fichiers accessible à l'utilisateur ~level00~ ou au groupe ~level00~:
+#+BEGIN_SRC shell :results list raw :exports both
+find / '(' -user level00 -or -group level00 ')' -and -not '(' -path "/proc/*" -prune ')' 2>/dev/null
+#+END_SRC
+
+#+RESULTS:
+- /dev/pts/1
+- /dev/pts/0
+- /dev/tty1
+
+Rien d'intéressant. Essayons l'utilisateur et groupe ~flag00~:
+#+BEGIN_SRC shell :results list raw :exports both
+find / '(' -user flag00 -or -group flag00 ')' -and -not '(' -path "/proc/*" -prune ')' 2>/dev/null
+#+END_SRC
+
+#+RESULTS:
+- /usr/sbin/john
+- /rofs/usr/sbin/john
+
+
+On trouve le fichier =/usr/sbin/john=. Quel est son type?
+#+BEGIN_SRC shell :exports both
+file /usr/sbin/john
+#+END_SRC
+
+#+RESULTS:
+: /usr/sbin/john: ASCII text
+
+Étant un fichier texte on peut afficher son contenu:
+#+NAME: john-content
+#+BEGIN_SRC shell :exports both
+cat /usr/sbin/john
+#+END_SRC
+
+#+RESULTS: john-content
+: cdiiddwpgswtgt
+
+Son contenu ne fonctionne pas comme mot de passe du compte ~flag00~. Essayons de faire tous les ~rotX~ possible pour voir:
+#+NAME: john-rotted
+#+HEADER: :var src=john-content
+#+HEADER: :includes '(<stdio.h> <stddef.h> <stdint.h> <ctype.h> <assert.h> <string.h>)
+#+HEADER: :results list raw
+#+BEGIN_SRC C :exports both
+#define ALPHA_LEN 26
+#define ROT_CHAR(c, rotation, floor) (((((c) - (floor)) + (rotation)) % ALPHA_LEN) + (floor))
+
+char rot_char(char c, uint8_t rotation)
+{
+  if (islower(c))
+    return ROT_CHAR(c, rotation, 'a');
+  else if (isupper(c))
+    return ROT_CHAR(c, rotation, 'A');
+  else
+    return c;
+}
+
+char *rot_string(const char *src, size_t srclen, char *dst, uint8_t rotation)
+{
+  for (size_t i = 0; i < srclen; ++i)
+    dst[i] = rot_char(src[i], rotation);
+
+  dst[srclen] = '\0';
+  return dst;
+}
+
+int main(void)
+{
+  char *dst = NULL;
+  size_t srclen = strlen(src);
+
+  dst = calloc(srclen + 1, sizeof(char));
+  assert(dst != NULL);
+
+  for (size_t i = 1; i < ALPHA_LEN; ++i)
+    puts(rot_string(src, srclen, dst, i));
+}
+#+END_SRC
+
+#+RESULTS: john-rotted
+- dejjeexqhtxuhu
+- efkkffyriuyviv
+- fgllggzsjvzwjw
+- ghmmhhatkwaxkx
+- hinniibulxbyly
+- ijoojjcvmyczmz
+- jkppkkdwnzdana
+- klqqllexoaebob
+- lmrrmmfypbfcpc
+- mnssnngzqcgdqd
+- nottoohardhere
+- opuuppibseifsf
+- pqvvqqjctfjgtg
+- qrwwrrkdugkhuh
+- rsxxsslevhlivi
+- styyttmfwimjwj
+- tuzzuungxjnkxk
+- uvaavvohykolyl
+- vwbbwwpizlpmzm
+- wxccxxqjamqnan
+- xyddyyrkbnrobo
+- yzeezzslcospcp
+- zaffaatmdptqdq
+- abggbbunequrer
+- bchhccvofrvsfs
+
+On remarque que l'une des rotations est ~nottoohardhere~. Essayons là comme mot de passe:
+#+HEADER: :dir /ssh:flag00@192.168.122.15#4242:
+#+BEGIN_SRC shell :exports both
+getflag
+#+END_SRC
+
+#+RESULTS:
+: Check flag.Here is your token : x24ti5gi3x0ol2eh4esiuxias
+
+\o/
